@@ -2,6 +2,9 @@
 #include "clima_config.h"
 #include "clima_cmds.h"
 
+#include <string.h>
+#include <stdio.h>
+
 #define CLIMA_NULL 0
 
 //typedef enum clima_bool_e {
@@ -20,17 +23,20 @@ typedef enum parse_result_e {
 typedef struct clima_ctx_s {
     clima_cli_print_clbk cli_print_clbk;
 	clima_log_print_clbk log_print_clbk;
+    clima_command_p menu_ptr;
     char command_buf[MAX_COMMAND_SIZE];
 } clima_ctx_t;
 typedef clima_ctx_t* clima_ctx_p;
 
 typedef struct search_result_s {
     int results;
-    scli_command_t* result_list[16];
+    clima_command_t* result_list[16];
 } search_result_t;
 
 clima_retv_t clima_set_cli_print_clbk_impl(clima_p self, clima_cli_print_clbk cli_print_clbk);
 clima_retv_t clima_set_log_print_clbk_impl(clima_p self, clima_log_print_clbk log_print_clbk);
+clima_retv_t clima_set_cmds_root_impl(clima_p self, clima_command_p cmds_root);
+clima_retv_t clima_put_char_impl(clima_p self, char ch);
 
 clima_retv_t init_clima(clima_p self)
 {
@@ -42,6 +48,8 @@ clima_retv_t init_clima(clima_p self)
 
 	self->set_cli_print_clbk = clima_set_cli_print_clbk_impl;
 	self->set_log_print_clbk = clima_set_log_print_clbk_impl;
+    self->set_cmds_root = clima_set_cmds_root_impl;
+    self->put_char = clima_put_char_impl;
 
 	return CLIMA_RETV_OK;
 }
@@ -68,6 +76,17 @@ clima_retv_t clima_set_log_print_clbk_impl(clima_p self, clima_log_print_clbk lo
 	return CLIMA_RETV_OK;
 }
 
+clima_retv_t clima_set_cmds_root_impl(clima_p self, clima_command_p cmds_root)
+{
+	if(self == CLIMA_NULL || cmds_root == CLIMA_NULL) {
+		return CLIMA_RETV_ERR;
+	}
+
+    self->ctx->menu_ptr = cmds_root;
+
+    return CLIMA_RETV_OK;
+}
+
 clima_bool_t clima_is_start_with(const char* command, const char* token)
 {
     int ch_count=0;
@@ -82,7 +101,7 @@ clima_bool_t clima_is_start_with(const char* command, const char* token)
     return CLIMA_TRUE;
 }
 
-clima_retv_t clima_find_cmds(char* token, scli_command_t *menu_ptr, search_result_t* result)
+clima_retv_t clima_find_cmds(char* token, clima_command_t *menu_ptr, search_result_t* result)
 {
     if(menu_ptr == CLIMA_NULL || result == CLIMA_NULL) {
         return CLIMA_RETV_ERR;
@@ -96,7 +115,7 @@ clima_retv_t clima_find_cmds(char* token, scli_command_t *menu_ptr, search_resul
     result->result_list[0]=0;
 
     while(menu_ptr->cmd) {
-        if(CLIMA_TRUE == scli_is_start_with(menu_ptr->cmd, token)) {
+        if(CLIMA_TRUE == clima_is_start_with(menu_ptr->cmd, token)) {
             result->result_list[result->results]=menu_ptr;           
             result->results++;
         }
@@ -108,23 +127,16 @@ clima_retv_t clima_find_cmds(char* token, scli_command_t *menu_ptr, search_resul
 
 clima_retv_t clima_print_hints(clima_ctx_p ctx, const search_result_t search_result)
 {
-    int rc=0, cc=0; 
     if(ctx == CLIMA_NULL || ctx->cli_print_clbk == CLIMA_NULL) {
         return CLIMA_RETV_ERR;
     }  
 
     for(int i=0; i<search_result.results; i++) {
 		ctx->cli_print_clbk("\n\t");
-        cc=0;
-        while(search_result.result_list[i]->cmd[cc] != '\0') {
-            ctx->cli_print_clbk(search_result.result_list[i]->cmd[cc++]);
-        }
-        cc=0;
+        ctx->cli_print_clbk(search_result.result_list[i]->cmd);
         if(search_result.result_list[i]->hint) {
 			ctx->cli_print_clbk(" - ");
-            while(search_result.result_list[i]->hint[cc] != '\0') {
-                ctx->cli_print_clbk(search_result.result_list[i]->hint[cc++]);
-            }
+            ctx->cli_print_clbk(search_result.result_list[i]->hint);
         }
     }
 	ctx->cli_print_clbk("\n");
@@ -180,9 +192,13 @@ int clima_is_ending_space(const char* s)
     return 0;
 }
 
-parse_result_t clima_parse_cmd(char* cmd, search_result_t* search_result)
+parse_result_t clima_parse_cmd(clima_ctx_p ctx, char* cmd, search_result_t* search_result)
 {
-    scli_command_t *menu_ptr = asMainCmd;
+    if(ctx->menu_ptr == CLIMA_NULL) {
+        return SCLI_PARSE_NO_RESULTS; 
+    }
+    clima_command_p menu_ptr = ctx->menu_ptr;
+
     char *token;
 	char *next_token;
 	char *saveptr;
@@ -196,10 +212,10 @@ parse_result_t clima_parse_cmd(char* cmd, search_result_t* search_result)
     search_result->results = 0;
 
     strncpy(tmp_buff, cmd, MAX_COMMAND_SIZE);
-    token = strtok_r(tmp_buff, "\t ", &saveptr);
+    token = strtok_r(tmp_buff, " ", &saveptr);
 
     if(token == NULL) {
-        find_cmd("", menu_ptr, search_result);
+        clima_find_cmds("", menu_ptr, search_result);
         return SCLI_PARSE_EMPTY_END;
     }
 
@@ -238,24 +254,28 @@ parse_result_t clima_parse_cmd(char* cmd, search_result_t* search_result)
 int clima_check_cmd(clima_ctx_p ctx, char* cmd)
 {
     search_result_t search_result={0};
-    parse_result_t parse_ret = clima_parse_cmd(cmd, &search_result);
+    parse_result_t parse_ret = clima_parse_cmd(ctx, cmd, &search_result);
 
     switch(parse_ret) {
         case SCLI_PARSE_ERROR:
             return 1;
 
-        case SCLI_PARSE_EMPTY_END:
         case SCLI_PARSE_MULTI_RESULTS:
             clima_print_hints(ctx, search_result);
-            //clima_scli_addstr(result, "\n");
             ctx->cli_print_clbk(cmd);    
             break;
 
+        case SCLI_PARSE_EMPTY_END:
+            if(search_result.results>1) {
+                clima_print_hints(ctx, search_result);
+                ctx->cli_print_clbk(cmd);
+                break;  
+            }
         case SCLI_PARSE_SINGLE_RESULT:
-            clima_scli_completion(cmd, search_result.result_list[0]->cmd);
+            clima_completion(cmd, search_result.result_list[0]->cmd);
 
             if(search_result.result_list[0]->next_cmd) {
-                clima_scli_addstr(cmd, " ");
+                clima_addstr(cmd, " ");
             } else {
                 ctx->cli_print_clbk("\n\n\t[ENTER]\n");
             }
@@ -270,10 +290,10 @@ int clima_check_cmd(clima_ctx_p ctx, char* cmd)
     return 0;
 }
 
-int clima_exec_cmd(char* cmd, char* result)
+int clima_exec_cmd(clima_ctx_p ctx, char* cmd)
 {
     search_result_t search_result;
-    parse_result_t parse_ret = parse_cmd(cmd, &search_result);
+    parse_result_t parse_ret = clima_parse_cmd(ctx, cmd, &search_result);
 
     switch(parse_ret) {
         case SCLI_PARSE_SINGLE_RESULT:
@@ -288,4 +308,62 @@ int clima_exec_cmd(char* cmd, char* result)
     }
 
     return 0;
+}
+
+#define CLIMA_KEY_ESC    27
+#define CLIMA_KEY_TAB    9
+#define CLIMA_KEY_ENTER  10
+#define CLIMA_KEY_BACKSPACE 127
+
+clima_retv_t clima_put_char_impl(clima_p self, char ch)
+{
+    static char tout[256];
+    static char tmp[260];
+    char putc[2] = "x\0";
+    int exit_flag = 0;
+
+    //printf("process_terminal teminal_in=%d\n",teminal_in);
+
+    switch(ch) {
+        case CLIMA_KEY_BACKSPACE:
+            if(tout[0]=='\0') break;
+            tout[strlen(tout)-1]='\0';
+            self->ctx->cli_print_clbk("\b \b");
+            //sprintf(terminal_out, "\b \b");
+            break;
+        case CLIMA_KEY_TAB:
+            if(clima_check_cmd(self->ctx, tout)) {
+                self->ctx->cli_print_clbk("\nERROR!\n");
+            }           
+            break;
+        case CLIMA_KEY_ESC:
+            self->ctx->cli_print_clbk("\nBye, bye!\n");
+            exit_flag = 1;
+            break;
+        case CLIMA_KEY_ENTER:
+            //sprintf(terminal_out, "\nCMD: %s\n", tout);
+            //printf("test");
+            //if(parse_cmd2(tout, terminal_out, SCLI_TRUE)) {
+            //    sprintf(terminal_out, "\nERROR!\n");
+            //}
+            if(clima_exec_cmd(self->ctx, tout)) {
+                self->ctx->cli_print_clbk("\nERROR!\n");
+            }   
+            tout[0]='\0';
+            break;
+        default:
+            sprintf(tmp, "%s%c", tout, ch);
+            strncpy(tout, tmp, 256);
+            putc[0] = ch;
+            self->ctx->cli_print_clbk(putc);
+            //sprintf(terminal_out, "%c", teminal_in);
+            break;
+    }
+    //printf("tout = >%s<\n",tout);
+
+    if(exit_flag) {
+        return CLIMA_RETV_ERR;
+    }
+    
+    return CLIMA_RETV_OK;
 }
