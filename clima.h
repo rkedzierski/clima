@@ -29,6 +29,8 @@ typedef clima_retv_t (*clima_set_cmds_root)(clima_p self, clima_command_p cmds_r
 
 typedef clima_retv_t (*clima_put_char)(clima_p self, char ch);
 
+typedef clima_retv_t (*clima_is_end)(clima_p self);
+
 clima_retv_t init_clima(clima_p self);
 
 struct clima_s {
@@ -37,6 +39,7 @@ struct clima_s {
 	clima_set_log_print_clbk set_log_print_clbk;
     clima_set_cmds_root set_cmds_root;
     clima_put_char put_char;
+    clima_is_end is_end;
 };
 
 #endif //CLIMA_H_

@@ -10,6 +10,12 @@ typedef enum clima_bool_e {
 	CLIMA_TRUE = 1
 } clima_bool_t;
 
+typedef enum clima_cmd_fn_retv_e {
+	CLIMA_CMD_ERR,
+	CLIMA_CMD_OK,
+	CLIMA_CMD_EXIT
+} clima_cmd_fn_retv_t;
+
 typedef int (*fn_handler_t) (char *pbCmd, struct clima_command_s **psCmdTab);
 
 typedef struct clima_command_s

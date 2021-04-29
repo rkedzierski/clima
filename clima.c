@@ -27,6 +27,7 @@ typedef struct clima_ctx_s {
 	clima_log_print_clbk log_print_clbk;
     clima_command_p menu_ptr;
     char command_buf[MAX_COMMAND_SIZE];
+    char exit_flag;
 } clima_ctx_t;
 typedef clima_ctx_t* clima_ctx_p;
 
@@ -39,6 +40,7 @@ clima_retv_t clima_set_cli_print_clbk_impl(clima_p self, clima_cli_print_clbk cl
 clima_retv_t clima_set_log_print_clbk_impl(clima_p self, clima_log_print_clbk log_print_clbk);
 clima_retv_t clima_set_cmds_root_impl(clima_p self, clima_command_p cmds_root);
 clima_retv_t clima_put_char_impl(clima_p self, char ch);
+clima_retv_t clima_is_end_impl(clima_p self);
 
 clima_retv_t init_clima(clima_p self)
 {
@@ -52,6 +54,7 @@ clima_retv_t init_clima(clima_p self)
 	self->set_log_print_clbk = clima_set_log_print_clbk_impl;
     self->set_cmds_root = clima_set_cmds_root_impl;
     self->put_char = clima_put_char_impl;
+    self->is_end = clima_is_end_impl;
 
 	return CLIMA_RETV_OK;
 }
@@ -87,6 +90,15 @@ clima_retv_t clima_set_cmds_root_impl(clima_p self, clima_command_p cmds_root)
     self->ctx->menu_ptr = cmds_root;
 
     return CLIMA_RETV_OK;
+}
+
+clima_retv_t clima_is_end_impl(clima_p self)
+{
+	if(self == CLIMA_NULL) {
+		return CLIMA_RETV_ERR;
+	}
+
+    return self->ctx->exit_flag;
 }
 
 clima_bool_t clima_is_start_with(const char* command, const char* token)
@@ -310,7 +322,9 @@ int clima_exec_cmd(clima_ctx_p ctx, char* cmd)
             if(!search_result.result_list[0]->fn_handler) {
                 return 1;
             }
-            search_result.result_list[0]->fn_handler(cmd, &search_result.result_list[0]);
+            if(CLIMA_CMD_EXIT == search_result.result_list[0]->fn_handler(cmd, &search_result.result_list[0])) {
+                ctx->exit_flag = 1;
+            }
             break;
 
         default:
@@ -330,7 +344,6 @@ clima_retv_t clima_put_char_impl(clima_p self, char ch)
     static char tout[256];
     static char tmp[260];
     char putc[2] = "x\0";
-    int exit_flag = 0;
 
     //printf("process_terminal teminal_in=%d\n",teminal_in);
 
@@ -347,8 +360,6 @@ clima_retv_t clima_put_char_impl(clima_p self, char ch)
             }           
             break;
         case CLIMA_KEY_ESC:
-            self->ctx->cli_print_clbk("\nBye, bye!\n");
-            exit_flag = 1;
             break;
         case CLIMA_KEY_ENTER:
             //sprintf(terminal_out, "\nCMD: %s\n", tout);
@@ -369,11 +380,7 @@ clima_retv_t clima_put_char_impl(clima_p self, char ch)
             //sprintf(terminal_out, "%c", teminal_in);
             break;
     }
-    //printf("tout = >%s<\n",tout);
 
-    if(exit_flag) {
-        return CLIMA_RETV_ERR;
-    }
     
     return CLIMA_RETV_OK;
 }
