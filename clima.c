@@ -7,6 +7,8 @@
 
 #define CLIMA_NULL 0
 
+#define IS_CLIMA_END_CHAR(ch) ((ch=='\0') || (ch==' '))
+
 //typedef enum clima_bool_e {
  //   CLIMA_FALSE = 0,
  //   CLIMA_TRUE = 1
@@ -91,7 +93,7 @@ clima_bool_t clima_is_start_with(const char* command, const char* token)
 {
     int ch_count=0;
     
-    while(token[ch_count]!=0) {
+    while(!IS_CLIMA_END_CHAR(token[ch_count]) && (command[ch_count]!=0)) {
         if(command[ch_count] != token[ch_count]) {
             return CLIMA_FALSE;
         }
@@ -123,6 +125,24 @@ clima_retv_t clima_find_cmds(char* token, clima_command_t *menu_ptr, search_resu
     } 
 
     return CLIMA_RETV_OK;
+}
+
+char* clima_find_next_token(char* token)
+{
+    int ch_count=0;
+    if(token == CLIMA_NULL) {
+        return CLIMA_NULL;
+    }
+
+    while(!IS_CLIMA_END_CHAR(token[ch_count])) {
+        ch_count++;
+    }
+
+    if(token[ch_count]=='\0') {
+        return CLIMA_NULL;
+    }
+
+    return token + ch_count + 1;
 }
 
 clima_retv_t clima_print_hints(clima_ctx_p ctx, const search_result_t search_result)
@@ -194,34 +214,24 @@ int clima_is_ending_space(const char* s)
 
 parse_result_t clima_parse_cmd(clima_ctx_p ctx, char* cmd, search_result_t* search_result)
 {
+    char *token;
+	char *next_token;
+    clima_command_p menu_ptr = ctx->menu_ptr;
+
     if(ctx->menu_ptr == CLIMA_NULL) {
         return SCLI_PARSE_NO_RESULTS; 
     }
-    clima_command_p menu_ptr = ctx->menu_ptr;
-
-    char *token;
-	char *next_token;
-	char *saveptr;
-    //search_result_t search_result;
-    char tmp_buff[MAX_COMMAND_SIZE];
 
     if(cmd == NULL || search_result == NULL) {
         return SCLI_PARSE_ERROR;
     }
     
     search_result->results = 0;
-
-    strncpy(tmp_buff, cmd, MAX_COMMAND_SIZE);
-    token = strtok_r(tmp_buff, " ", &saveptr);
-
-    if(token == NULL) {
-        clima_find_cmds("", menu_ptr, search_result);
-        return SCLI_PARSE_EMPTY_END;
-    }
+    next_token = token = cmd;
 
     while(token) {
 		/* get next token */
-		next_token = strtok_r(NULL, "\t ", &saveptr);
+        next_token = clima_find_next_token(next_token);
 
         clima_find_cmds(token, menu_ptr, search_result);
         //printf("\nFind %d results.\n", search_result.results);
