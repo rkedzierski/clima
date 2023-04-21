@@ -3,6 +3,8 @@
 
 #include <stddef.h>
 
+#define CLIMA_NEW_LINE	"\n"
+
 typedef size_t clima_size_t;
 
 void* clima_malloc(clima_size_t size);
