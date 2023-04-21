@@ -353,6 +353,7 @@ clima_retv_t clima_check_cmd_impl(clima_p self, char* cmd)
             break;
 
         case SCLI_PARSE_NO_RESULTS:
+            ctx->cli_print_clbk("\n\r");
             break;
     }
     return CLIMA_RETV_OK;
