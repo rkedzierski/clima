@@ -9,11 +9,14 @@
  * 
  */
 #include "clima.h"
-#include "clima_config.h"
 #include "clima_cmds.h"
 
 #include <string.h>
 #include <stdio.h>
+
+#ifndef   __WEAK
+  #define __WEAK                                 __attribute__((weak))
+#endif
 
 /**
  * @brief TODO: remove
@@ -505,4 +508,24 @@ clima_retv_t clima_exec_cmd_impl(clima_p self, const char* cmd)
     }
 
     return CLIMA_RETV_OK;
+}
+
+/**
+ * @brief Default definition of memory allocation function.
+ * 
+ * @param size in bytes
+ * @return void* pointer to buffer
+ */
+__WEAK void* clima_malloc(clima_size_t size) {
+	return malloc(size);
+}
+
+/**
+ * @brief Default definition of memory allocation function.
+ * 
+ * @param size in bytes
+ * @return void* pointer to buffer
+ */
+__WEAK void clima_free(void* ptr) {
+	return free(ptr);
 }
