@@ -88,6 +88,7 @@ clima_retv_t init_clima(clima_p self)
 	}
 
 	self->ctx = clima_malloc(sizeof(*self->ctx));
+    self->ctx->exit_flag = 0;
 
 	self->set_cli_print_clbk = clima_set_cli_print_clbk_impl;
 	self->set_log_print_clbk = clima_set_log_print_clbk_impl;
