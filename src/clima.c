@@ -214,7 +214,6 @@ clima_retv_t clima_find_cmds(const char* token, clima_command_t *menu_ptr, searc
     result->first_idx = 0;
 
     while(menu_ptr->cmd) {
-        idx++;
         if(CLIMA_TRUE == clima_is_start_with(menu_ptr->cmd, token)) {
             result->result_list[result->results]=menu_ptr;           
             result->results++;
@@ -224,6 +223,7 @@ clima_retv_t clima_find_cmds(const char* token, clima_command_t *menu_ptr, searc
             }
         }
         menu_ptr++;
+        idx++;
     } 
 
     return CLIMA_RETV_OK;
