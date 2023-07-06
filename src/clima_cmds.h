@@ -11,6 +11,17 @@
 #ifndef __CLIMA_CMDS_H__
 #define __CLIMA_CMDS_H__
 
+#include "clima_conf.h"
+
+/**
+ * @brief 
+ */
+#define CLIMA_RETURN_ERROR_IF_EXTRA_ARGS \
+	if(cmd_struct->args) { \
+		cprint("ERROR.\n\r"); \
+		return CLIMA_CMD_OK; \
+	}
+
 /**
  * @brief Pointer on terminal printing function.
  */

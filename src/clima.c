@@ -266,14 +266,14 @@ clima_retv_t clima_print_hints(clima_ctx_p ctx, const search_result_t search_res
     }  
 
     for(int i=0; i<search_result.results; i++) {
-		ctx->cli_print_clbk("\n\r\t");
+		ctx->cli_print_clbk(CLIMA_NEW_LINE CLIMA_TAB);
         ctx->cli_print_clbk(search_result.result_list[i]->cmd);
         if(search_result.result_list[i]->hint) {
 			ctx->cli_print_clbk(" - ");
             ctx->cli_print_clbk(search_result.result_list[i]->hint);
         }
     }
-	ctx->cli_print_clbk("\n\r");
+	ctx->cli_print_clbk(CLIMA_NEW_LINE);
 
 	return CLIMA_RETV_OK;
 }
@@ -459,20 +459,20 @@ clima_retv_t clima_check_cmd_impl(clima_p self, char* cmd)
                 clima_addstr(cmd, " ");
             } else {
                 if(search_result.args_hint) {
-                    ctx->cli_print_clbk("\n\n\r\t");
+                    ctx->cli_print_clbk(CLIMA_NEW_LINE CLIMA_NEW_LINE CLIMA_TAB);
                     ctx->cli_print_clbk(search_result.args_hint);
-                    ctx->cli_print_clbk("[ENTER]\n\r");
+                    ctx->cli_print_clbk(CLIMA_ENTER_MESSAGE CLIMA_NEW_LINE);
                 } else {
-                    ctx->cli_print_clbk("\n\n\r\t[ENTER]\n\r");
+                    ctx->cli_print_clbk(CLIMA_NEW_LINE CLIMA_NEW_LINE CLIMA_TAB CLIMA_ENTER_MESSAGE CLIMA_NEW_LINE);
                 }
             }
-            ctx->cli_print_clbk("\n\r");
+            ctx->cli_print_clbk(CLIMA_NEW_LINE);
             //ctx->cli_print_clbk(cmd);
             
             break;
 
         case SCLI_PARSE_NO_RESULTS:
-            ctx->cli_print_clbk("\n\r");
+            ctx->cli_print_clbk(CLIMA_NEW_LINE);
             break;
     }
     return CLIMA_RETV_OK;

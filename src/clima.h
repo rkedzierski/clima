@@ -12,37 +12,9 @@
 #define __CLIMA_H__
 
 #include "clima_cmds.h"
+#include "clima_conf.h"
 #include <stdlib.h>
 #include <stddef.h>
-
-/**
- * @brief Size of command buffer.
- */
-#ifndef MAX_COMMAND_SIZE
-#define MAX_COMMAND_SIZE 256
-#endif
-
-/**
- * @brief Maximum number of tokens in command.
- */
-#ifndef MAX_COMMAND_TOKENS
-#define MAX_COMMAND_TOKENS 16
-#endif
-
-/**
- * @brief New line character.
- */
-#ifndef CLIMA_NEW_LINE
-#define CLIMA_NEW_LINE	"\n"
-#endif
-
-#ifndef clima_size_t
-/**
- * @brief Default declaration of eddy size type[replaceable]
- * 
- */
-typedef size_t clima_size_t;
-#endif
 
 /**
  * @brief Library return type
