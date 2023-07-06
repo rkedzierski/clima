@@ -14,10 +14,16 @@
 #include "clima_conf.h"
 
 /**
- * @brief 
+ * @brief Command functions macros
  */
 #define CLIMA_RETURN_ERROR_IF_EXTRA_ARGS \
 	if(cmd_struct->args) { \
+		cprint("ERROR.\n\r"); \
+		return CLIMA_CMD_OK; \
+	}
+
+#define CLIMA_RETURN_ERROR_IF_NOT_EXTRA_ARGS \
+	if(!cmd_struct->args) { \
 		cprint("ERROR.\n\r"); \
 		return CLIMA_CMD_OK; \
 	}
