@@ -27,6 +27,14 @@
 #endif
 
 /**
+ * @brief Maximum number of search results [configurable]
+ * 
+ */
+#ifndef MAX_SEARCH_RESULTS
+#define MAX_SEARCH_RESULTS 32
+#endif
+
+/**
  * @brief New line character [configurable]
  */
 #ifndef CLIMA_NEW_LINE
@@ -59,4 +67,8 @@ typedef size_t clima_size_t;
  */
 #ifndef CLIMA_ENTER_MESSAGE
 #define CLIMA_ENTER_MESSAGE "[ENTER]"
+#endif
+
+#ifndef CLIMA_MORE_MESSAGE
+#define CLIMA_MORE_MESSAGE "-- more --"
 #endif

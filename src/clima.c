@@ -13,6 +13,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #ifndef   __WEAK
   #define __WEAK                                 __attribute__((weak))
@@ -62,9 +63,10 @@ typedef struct clima_ctx_s {
  */
 typedef struct search_result_s {
     int results;                        /**< Number of parsing results. */
-    clima_command_t* result_list[16];   /**< List of pointer to found tokens in command tree. */
+    clima_command_t* result_list[MAX_SEARCH_RESULTS];   /**< List of pointer to found tokens in command tree. */
     int first_idx;                      /**< First token index on the results list. */
     char *args_hint;                    /**< Pointer to hit about arguments. */
+    bool more_results;                  /**< Flas is set if results is more than list capacity. */
 } search_result_t;
 
 /**
@@ -212,6 +214,7 @@ clima_retv_t clima_find_cmds(const char* token, clima_command_t *menu_ptr, searc
     result->results = 0;
     result->result_list[0] = 0;
     result->first_idx = 0;
+    result->more_results = false;
 
     while(menu_ptr->cmd) {
         if(CLIMA_TRUE == clima_is_start_with(menu_ptr->cmd, token)) {
@@ -220,6 +223,11 @@ clima_retv_t clima_find_cmds(const char* token, clima_command_t *menu_ptr, searc
             
             if(!result->first_idx) {
                 result->first_idx = idx;
+            }
+
+            if(result->results == MAX_SEARCH_RESULTS) {
+                result->more_results = true;
+                break;
             }
         }
         menu_ptr++;
@@ -273,6 +281,11 @@ clima_retv_t clima_print_hints(clima_ctx_p ctx, const search_result_t search_res
 			ctx->cli_print_clbk(" - ");
             ctx->cli_print_clbk(search_result.result_list[i]->hint);
         }
+
+        if(search_result.more_results == true) {
+            ctx->cli_print_clbk(CLIMA_NEW_LINE CLIMA_TAB);
+            ctx->cli_print_clbk(CLIMA_MORE_MESSAGE);
+        }
     }
 	ctx->cli_print_clbk(CLIMA_NEW_LINE);
 
@@ -317,6 +330,44 @@ void clima_completion(char* cmd, char* full_token)
         cmd[cc++] = full_token[tc++];
     }
     cmd[cc] = '\0';
+}
+
+/**
+ * @brief Function founds the common part of results.
+ * 
+ * @param search_result Structure with search result. @see search_result_s
+ * @param common_part Common part string pointer.
+ */
+void clima_common_part(const search_result_t search_result, char* common_part)
+{
+    int cc=0, cr=0;
+    char ch;
+
+    do {
+        if(search_result.result_list[cr]->cmd[cc] == 0) {
+            break;
+        }
+
+        if(cr == 0) {
+            ch = search_result.result_list[cr]->cmd[cc];
+            cr++;
+            continue;
+        }
+
+        if(ch != search_result.result_list[cr]->cmd[cc]) {
+            break;
+        }
+
+        cr++;
+
+        if(cr == search_result.results) {
+            common_part[cc] == search_result.result_list[0]->cmd[cc];
+            cc++;
+            cr=0;
+        }
+    } while(true);
+
+    common_part[cc] = '\0';
 }
 
 /**
@@ -432,6 +483,7 @@ clima_retv_t clima_check_cmd_impl(clima_p self, char* cmd)
 {
 	clima_ctx_p ctx = self->ctx;
     search_result_t search_result={0};
+    char common_part[MAX_COMMAND_SIZE];
     parse_result_t parse_ret = clima_parse_cmd(ctx, cmd, &search_result, CLIMA_NULL);
 
     //printf("clima_check_cmd parse_ret = %d", parse_ret);
@@ -441,12 +493,16 @@ clima_retv_t clima_check_cmd_impl(clima_p self, char* cmd)
 
         case SCLI_PARSE_MULTI_RESULTS:
             clima_print_hints(ctx, search_result);
+            clima_common_part(search_result, common_part);
+            clima_completion(cmd, common_part);
             //ctx->cli_print_clbk(cmd);
             break;
 
         case SCLI_PARSE_EMPTY_END:
             if(search_result.results>1) {
                 clima_print_hints(ctx, search_result);
+                clima_common_part(search_result, common_part);
+                clima_completion(cmd, common_part);
                 //ctx->cli_print_clbk(cmd);
                 break;  
             }
