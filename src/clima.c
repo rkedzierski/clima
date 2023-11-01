@@ -16,7 +16,7 @@
 #include <stdbool.h>
 
 #ifndef   __WEAK
-  #define __WEAK                                 __attribute__((weak))
+  #define __WEAK    __attribute__((weak))
 #endif
 
 /**
@@ -295,17 +295,23 @@ clima_retv_t clima_print_hints(clima_ctx_p ctx, const search_result_t search_res
 /**
  * @brief Function adds source string to destinaton string.
  * 
- * @param dest Destination string.
- * @param src Source string.
+ * @param dest_str Destination string.
+ * @param source_str Source string.
  */
-void clima_addstr(char* dest, char* src)
+void clima_addstr(char* dest_str, char* source_str)
 {
-    int dc=0, sc=0;
-    while(dest[dc]!='\0') {dc++;}
-    while(src[sc]!='\0') {
-        dest[dc++] = src[sc++];
+    int dest_ch_count = 0;
+    int source_ch_count = 0;
+
+    while(dest_str[dest_ch_count]!='\0') {
+        dest_ch_count++;
     }
-    dest[dc]='\0';
+
+    while(source_str[source_ch_count]!='\0') {
+        dest_str[dest_ch_count++] = source_str[source_ch_count++];
+    }
+
+    dest_str[dest_ch_count]='\0';
 }
 
 /**
@@ -316,20 +322,26 @@ void clima_addstr(char* dest, char* src)
  */
 void clima_completion(char* cmd, char* full_token)
 {
-    int cc=0, tc=0;
-    while(cmd[cc]!='\0') {
-        cc++;
+    int cmd_ch_count = 0;
+    int token_ch_count = 0;
+
+    while(cmd[cmd_ch_count]!='\0') {
+        cmd_ch_count++;
     }
-    while(cmd[cc]!=' ' && cc!=0) {
-        cc--;
+
+    while(cmd[cmd_ch_count]!=' ' && cmd_ch_count!=0) {
+        cmd_ch_count--;
     }
-    if(cmd[cc]==' ') {
-        cc++;
+
+    if(cmd[cmd_ch_count]==' ') {
+        cmd_ch_count++;
     }
-    while(full_token[tc]!='\0') {
-        cmd[cc++] = full_token[tc++];
+
+    while(full_token[token_ch_count]!='\0') {
+        cmd[cmd_ch_count++] = full_token[token_ch_count++];
     }
-    cmd[cc] = '\0';
+
+    cmd[cmd_ch_count] = '\0';
 }
 
 /**
@@ -340,34 +352,35 @@ void clima_completion(char* cmd, char* full_token)
  */
 void clima_common_part(const search_result_t search_result, char* common_part)
 {
-    int cc=0, cr=0;
+    int ch_count = 0;
+    int result_count=0;
     char ch;
 
     do {
-        if(search_result.result_list[cr]->cmd[cc] == 0) {
+        if(search_result.result_list[result_count]->cmd[ch_count] == 0) {
             break;
         }
 
-        if(cr == 0) {
-            ch = search_result.result_list[cr]->cmd[cc];
-            cr++;
+        if(result_count == 0) {
+            ch = search_result.result_list[result_count]->cmd[ch_count];
+            result_count++;
             continue;
         }
 
-        if(ch != search_result.result_list[cr]->cmd[cc]) {
+        if(ch != search_result.result_list[result_count]->cmd[ch_count]) {
             break;
         }
 
-        cr++;
+        result_count++;
 
-        if(cr == search_result.results) {
-            common_part[cc] == search_result.result_list[0]->cmd[cc];
-            cc++;
-            cr=0;
+        if(result_count == search_result.results) {
+            common_part[ch_count] == search_result.result_list[0]->cmd[ch_count];
+            ch_count++;
+            result_count=0;
         }
     } while(true);
 
-    common_part[cc] = '\0';
+    common_part[ch_count] = '\0';
 }
 
 /**
@@ -378,13 +391,13 @@ void clima_common_part(const search_result_t search_result, char* common_part)
  */
 int clima_is_ending_space(const char* str)
 {
-    int c=0;
-    while(str[c]!='\0') {
-        c++;
+    int ch_count=0;
+    while(str[ch_count]!='\0') {
+        ch_count++;
     }
 
-    if(c>0) {
-        if(str[c-1]==' ') {
+    if(ch_count>0) {
+        if(str[ch_count-1]==' ') {
             return 1;
         }
     }
@@ -430,15 +443,12 @@ parse_result_t clima_parse_cmd(clima_ctx_p ctx, const char* cmd, search_result_t
             if(cmd_struct) {
                 cmd_struct->args = token;
             }
-            //printf("SCLI_PARSE_SINGLE_RESULT_ARGS\n");
             return SCLI_PARSE_SINGLE_RESULT_ARGS;
         }
 
         clima_find_cmds(token, menu_ptr, search_result);
-        //printf("\nFind %d results.\n", search_result.results);
 
         if(search_result->results == 0 || (search_result->results>1 && next_token)) {
-            //printf("SCLI_PARSE_NO_RESULTS\n");
             return SCLI_PARSE_NO_RESULTS;
         }
 
@@ -460,15 +470,13 @@ parse_result_t clima_parse_cmd(clima_ctx_p ctx, const char* cmd, search_result_t
     }
 
     if(clima_is_ending_space(cmd) && menu_ptr) {
-        //printf("SCLI_PARSE_EMPTY_END"CLIMA_NEW_LINE);
         return SCLI_PARSE_EMPTY_END;
     }
 
     if(search_result->results == 1) {
-        //printf("SCLI_PARSE_SINGLE_RESULT"CLIMA_NEW_LINE);
         return SCLI_PARSE_SINGLE_RESULT;
     }
-    //printf("SCLI_PARSE_MULTI_RESULTS"CLIMA_NEW_LINE);
+
     return SCLI_PARSE_MULTI_RESULTS;
 }
 
@@ -486,7 +494,6 @@ clima_retv_t clima_check_cmd_impl(clima_p self, char* cmd)
     char common_part[MAX_COMMAND_SIZE];
     parse_result_t parse_ret = clima_parse_cmd(ctx, cmd, &search_result, CLIMA_NULL);
 
-    //printf("clima_check_cmd parse_ret = %d", parse_ret);
     switch(parse_ret) {
         case SCLI_PARSE_ERROR:
             return CLIMA_RETV_ERR;
@@ -495,7 +502,6 @@ clima_retv_t clima_check_cmd_impl(clima_p self, char* cmd)
             clima_print_hints(ctx, search_result);
             clima_common_part(search_result, common_part);
             clima_completion(cmd, common_part);
-            //ctx->cli_print_clbk(cmd);
             break;
 
         case SCLI_PARSE_EMPTY_END:
@@ -503,14 +509,16 @@ clima_retv_t clima_check_cmd_impl(clima_p self, char* cmd)
                 clima_print_hints(ctx, search_result);
                 clima_common_part(search_result, common_part);
                 clima_completion(cmd, common_part);
-                //ctx->cli_print_clbk(cmd);
                 break;  
             }
+            /* else continue in SCLI_PARSE_SINGLE_RESULT */
+
         case SCLI_PARSE_SINGLE_RESULT:
             clima_completion(cmd, search_result.result_list[0]->cmd);
             if(search_result.result_list[0]->args_hint) {
                 clima_addstr(cmd, " ");
             }
+
         case SCLI_PARSE_SINGLE_RESULT_ARGS:
             if(search_result.result_list[0]->next_cmd) {
                 clima_addstr(cmd, " ");
@@ -523,9 +531,7 @@ clima_retv_t clima_check_cmd_impl(clima_p self, char* cmd)
                     ctx->cli_print_clbk(CLIMA_NEW_LINE CLIMA_NEW_LINE CLIMA_TAB CLIMA_ENTER_MESSAGE CLIMA_NEW_LINE);
                 }
             }
-            ctx->cli_print_clbk(CLIMA_NEW_LINE);
-            //ctx->cli_print_clbk(cmd);
-            
+            ctx->cli_print_clbk(CLIMA_NEW_LINE); 
             break;
 
         case SCLI_PARSE_NO_RESULTS:
