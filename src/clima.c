@@ -374,7 +374,7 @@ void clima_common_part(const search_result_t search_result, char* common_part)
         result_count++;
 
         if(result_count == search_result.results) {
-            common_part[ch_count] == search_result.result_list[0]->cmd[ch_count];
+            common_part[ch_count] = search_result.result_list[0]->cmd[ch_count];
             ch_count++;
             result_count=0;
         }
