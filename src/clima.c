@@ -48,6 +48,16 @@ typedef enum parse_result_e {
 } parse_result_t;
 
 /**
+ * @brief Define of comparision results enum.
+ * Private type.
+ */
+typedef enum {
+    clima_CmpSame,                      /**< Token is same as command .*/
+    clima_CmpStartingWith,              /**< Token is part of command. */
+    clima_CmpDifferent                  /**< Token is different from command. */
+} clima_cmp_result_t;
+
+/**
  * @brief Private internal context of library
  */
 typedef struct clima_ctx_s {
@@ -64,6 +74,7 @@ typedef struct clima_ctx_s {
 typedef struct search_result_s {
     int results;                        /**< Number of parsing results. */
     clima_command_t* result_list[MAX_SEARCH_RESULTS];   /**< List of pointer to found tokens in command tree. */
+    clima_command_t* same_cmd;          /**< Command from results is the same of token. */
     int first_idx;                      /**< First token index on the results list. */
     char *args_hint;                    /**< Pointer to hit about arguments. */
     bool more_results;                  /**< Flas is set if results is more than list capacity. */
@@ -172,24 +183,32 @@ clima_retv_t clima_is_end_impl(clima_p self)
 }
 
 /**
- * @brief Check token is a part of command.
+ * @brief Function compare token to the command.
  * 
  * @param command Pointer on command buffer.
  * @param token Pointer on token name string.
- * @return clima_bool_t Returns true if token contain begin of command.
+ * @return clima_cmp_result_t 
  */
-clima_bool_t clima_is_start_with(const char* command, const char* token)
+clima_cmp_result_t clima_compare_to_cmd(const char* command, const char* token)
 {
     int ch_count=0;
     
     while(!IS_CLIMA_END_CHAR(token[ch_count]) && (command[ch_count]!=0)) {
         if(command[ch_count] != token[ch_count]) {
-            return CLIMA_FALSE;
+            return clima_CmpDifferent;
         }
         ch_count++;
     }
 
-    return CLIMA_TRUE;
+    if((command[ch_count] == 0) && !IS_CLIMA_END_CHAR(token[ch_count])) {
+        return clima_CmpDifferent;
+    }
+
+    if((command[ch_count] == 0) && IS_CLIMA_END_CHAR(token[ch_count])) {
+        return clima_CmpSame;
+    }
+
+    return clima_CmpStartingWith;
 }
 
 /**
@@ -213,15 +232,22 @@ clima_retv_t clima_find_cmds(const char* token, clima_command_t *menu_ptr, searc
 
     result->results = 0;
     result->result_list[0] = 0;
-    result->first_idx = 0;
+    result->first_idx = -1;
     result->more_results = false;
+    result->same_cmd = CLIMA_NULL;
 
     while(menu_ptr->cmd) {
-        if(CLIMA_TRUE == clima_is_start_with(menu_ptr->cmd, token)) {
+        clima_cmp_result_t cmp_result = clima_compare_to_cmd(menu_ptr->cmd, token);
+        if(cmp_result != clima_CmpDifferent) {
             result->result_list[result->results]=menu_ptr;           
             result->results++;
             
-            if(!result->first_idx) {
+            if(result->first_idx == -1) {
+                result->first_idx = idx;
+            }
+
+            if(cmp_result == clima_CmpSame) {
+                result->same_cmd = menu_ptr;
                 result->first_idx = idx;
             }
 
@@ -450,7 +476,13 @@ parse_result_t clima_parse_cmd(clima_ctx_p ctx, const char* cmd, search_result_t
         clima_find_cmds(token, menu_ptr, search_result);
 
         if(search_result->results == 0 || (search_result->results>1 && next_token)) {
-            return SCLI_PARSE_NO_RESULTS;
+            if(search_result->same_cmd == CLIMA_NULL) {
+                return SCLI_PARSE_NO_RESULTS;
+            } else {
+                search_result->result_list[0] = search_result->same_cmd;
+                search_result->results = 1;
+                printf("DEBUG: same cmd saved: %s", search_result->same_cmd->cmd);
+            }
         }
 
         menu_ptr = search_result->result_list[0];
@@ -591,5 +623,5 @@ __WEAK void* clima_malloc(clima_size_t size) {
  * @return void* pointer to buffer
  */
 __WEAK void clima_free(void* ptr) {
-	return free(ptr);
+	free(ptr);
 }
