@@ -481,7 +481,6 @@ parse_result_t clima_parse_cmd(clima_ctx_p ctx, const char* cmd, search_result_t
             } else {
                 search_result->result_list[0] = search_result->same_cmd;
                 search_result->results = 1;
-                printf("DEBUG: same cmd saved: %s", search_result->same_cmd->cmd);
             }
         }
 
