@@ -281,12 +281,13 @@ clima_retv_t clima_print_hints(clima_ctx_p ctx, const search_result_t search_res
 			ctx->cli_print_clbk(" - ");
             ctx->cli_print_clbk(search_result.result_list[i]->hint);
         }
-
-        if(search_result.more_results == true) {
-            ctx->cli_print_clbk(CLIMA_NEW_LINE CLIMA_TAB);
-            ctx->cli_print_clbk(CLIMA_MORE_MESSAGE);
-        }
     }
+
+    if(search_result.more_results == true) {
+        ctx->cli_print_clbk(CLIMA_NEW_LINE CLIMA_TAB);
+        ctx->cli_print_clbk(CLIMA_MORE_MESSAGE);
+    }
+
 	ctx->cli_print_clbk(CLIMA_NEW_LINE);
 
 	return CLIMA_RETV_OK;
